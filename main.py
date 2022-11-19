@@ -5,7 +5,8 @@ from datetime import datetime
 import traceback
 from passlib.hash import sha256_crypt
 import utils
-
+import random
+import string
 salt="a!#$%sd"
 
 app = Flask(__name__)
@@ -221,6 +222,79 @@ def delete_task(db=models.session()):
         traceback.print_exc()
         err = str(e)
         return {"detail":err}, 404 
+
+@app.route("/user/update/", methods=["PUT"])
+def update_name(db=models.session()):
+    try:
+        auth_header = request.headers
+        if "Authorization" not in auth_header :
+            db.close()
+            return {"details":"missing auth token"}, 404
+        auth_token = auth_header["Authorization"].split(' ')[1]
+        print(auth_token)
+        
+        user_id=utils.decode_jwt(auth_token)
+         
+        if user_id is False:
+            db.close()
+            return {"detalis":"invalid token "},404
+        user_id = user_id["user_id"]
+
+        user_data = request.get_json()
+        
+        db_user =  db.query(models.User).filter(models.User.user_id==user_id).all()
+
+        if db_user == []:
+            db.close()
+            return {"details":"no user found"},404
+
+        db_user = db_user[0]
+        db_user.user_name = user_data["user_name"]
+        db.commit()
+        db.close()
+        return {"detail":"user has been updated"}, 204    
+    except Exception as e:
+        traceback.print_exc()
+        err = str(e)
+        return {"detail":err}, 404 
+
+@app.route("/user/forgetpassword/", methods=["PUT"])
+def forget_password(db=models.session()):
+    try:
+        user_data= request.args
+        db_email=  db.query(models.User).filter(models.User.email==user_data["email"]).all()
+        if db_email == []:
+            db.close()
+            return {"details":"please signup "}
+        new_password=utils.get_random_string(12)
+        unhashed_pass = new_password + salt
+        password = sha256_crypt.encrypt(unhashed_pass)
+        db_email[0].password=password
+        db.commit()
+        db.close()
+
+        utils.mail_password(user_data["email"],new_password)
+        return {"details":"password has been reset"}
+
+
+
+
+
+
+
+
+        
+    except:
+        pass
+                
+
+
+    
+
+
+
+
+
                
 
 
@@ -234,4 +308,4 @@ def delete_task(db=models.session()):
 
 
 if __name__ == "__main__":
-    app.run(host="192.168.18.129", port=5000, debug=True)
+    app.run(debug=True)
