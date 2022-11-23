@@ -75,6 +75,51 @@ def login(db = models.session()):
         err = str(e)
         return {"detail":err}, 404
 
+@app.route("/user/updatepassword/", methods=["POST"])
+def updatepassword(db=models.session()):
+    try:
+        auth_headers=request.headers
+        
+        if "Authorization" not in  auth_headers:
+            db.close()
+            return {"details":"jwt token missing"}, 400
+
+        auth_token = auth_headers["Authorization"].split(' ')[1]
+        print(auth_token)
+        user_id=utils.decode_jwt(auth_token)
+        
+        if user_id is False:
+            db.close()
+            return {"details":"invalid token"}
+
+        user_id = user_id["user_id"]
+        dict_data=request.get_json()
+
+        db_password=db.query(models.User).filter(models.User.user_id==user_id)
+        # to check old /new pasword
+        old_password=dict_data["old_password"]+salt
+        check_password = sha256_crypt.verify(old_password, db_password[0].password)
+        print(check_password)
+        if check_password==False:
+            db.close()
+            return {"details":"wrong old password"}
+        new_password = sha256_crypt.encrypt(dict_data["new_password"]+salt)
+        
+        db_password[0].password = new_password
+        
+        db.commit()
+        db.close()
+            
+        return {"detail": "password succesfull updated"} , 200
+         
+
+    except Exception as e:
+        traceback.print_exc()
+        err = str(e)
+        return {"detail":err}, 404 
+
+    
+
 
 @app.route("/task/create/",methods=["POST"])
 def create_task(db=models.session()):
@@ -276,35 +321,10 @@ def forget_password(db=models.session()):
         utils.mail_password(user_data["email"],new_password)
         return {"details":"password has been reset"}
 
-
-
-
-
-
-
-
-        
-    except:
-        pass
-                
-
-
-    
-
-
-
-
-
-               
-
-
-            
-
-
-
-
-
-
+    except Exception as e:
+        traceback.print_exc()
+        err = str(e)
+        return {"detail":err}, 404 
 
 
 if __name__ == "__main__":
