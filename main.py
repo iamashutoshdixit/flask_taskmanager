@@ -62,6 +62,7 @@ def login(db = models.session()):
             return {"detail": "user not found" }, 404
         db_user = db_user[0]
         db_password = db_user.password
+        # to verify password
         check_password = sha256_crypt.verify(user_data["password"]+salt, db_password)
         print(check_password)
         if check_password == True:
