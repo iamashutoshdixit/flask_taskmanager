@@ -5,8 +5,6 @@ from datetime import datetime
 import traceback
 from passlib.hash import sha256_crypt
 import utils
-import random
-import string
 salt="a!#$%sd"
 
 app = Flask(__name__)
