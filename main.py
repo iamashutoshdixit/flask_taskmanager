@@ -318,7 +318,7 @@ def forget_password(db=models.session()):
         db.close()
 
         utils.mail_password(user_data["email"],new_password)
-        return {"details":"password has been reset"}
+        return {"details":"password has been reset"}, 201
 
     except Exception as e:
         traceback.print_exc()
